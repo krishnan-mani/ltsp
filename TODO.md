@@ -1,0 +1,16 @@
+- Configure the choice of s3 bucket and ssh key to access the test instance
+- Move CloudWatch logs group to pre-requisites stack
+- Remove the need for test-runner stack to use an export from spot-fleet for the spot fleet request Id
+- Generalise the templates and automation for use in different regions
+- State constraints in terms of availability of developer services in AWS regions 
+- Run JMeter as user other than root
+- Export or otherwise provide automation for CodeCommit, CodeBuild, CodePipeline elements
+- Document all roles and other permissions-related
+- Also write logs from spot fleet instances
+- More testing with test runs
+- More end-to-end testing of pipeline
+- Document gotchas with CloudFormation support for spot fleet
+- Align paths on test instances with project paths
+- Remove ssh key access from spot fleet
+- Tag spot fleet
+- Private IP addresses for spot fleet instances

@@ -1,0 +1,6 @@
+{
+  "name": "demo-spot-fleet",
+  "hasParameters": true,
+  "region": "us-east-1",
+  "action": "recreate"
+}

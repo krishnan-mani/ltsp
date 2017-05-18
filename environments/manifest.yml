@@ -1,0 +1,5 @@
+path: templates
+templates:
+  - pre-requisites
+  - spot-fleet
+  - test-runner

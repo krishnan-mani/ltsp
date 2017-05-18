@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "REPLACE-ME-VpcId"
+  },
+  {
+    "ParameterKey": "testArtifactsBucket",
+    "ParameterValue": "load-test-with-spot-fleet"
+  }
+]

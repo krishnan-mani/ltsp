@@ -1,0 +1,15 @@
+{
+  "name": "utility",
+  "version": "1.0.0",
+  "description": "Transform between different formats for the CloudFormation parameters artifact",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "CloudFormation",
+    "parameters"
+  ],
+  "author": "Krishnan M",
+  "license": "ISC"
+}

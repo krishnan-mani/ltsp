@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey": "testFleetSubnetId",
+    "ParameterValue": "REPLACE-ME-testFleetSubnetId"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "REPLACE-ME-KeyName"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "REPLACE-ME-VpcId"
+  },
+  {
+    "ParameterKey": "myIamFleetRole",
+    "ParameterValue": "REPLACE-ME-myIamFleetRole"
+  },
+  {
+    "ParameterKey": "testArtifactsBucket",
+    "ParameterValue": "load-test-with-spot-fleet"
+  },
+  {
+    "ParameterKey": "prerequisitesStackName",
+    "ParameterValue": "demo-pre-requisites"
+  },
+  {
+    "ParameterKey": "TargetCapacity",
+    "ParameterValue": "8"
+  }
+]

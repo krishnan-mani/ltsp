@@ -1,0 +1,189 @@
+{
+  "Parameters": {
+    "VpcId": {
+      "Description": "VPC that the test fleet resides in",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "testArtifactsBucket": {
+      "Description": "S3 bucket that holds the test artifacts",
+      "Type": "String",
+      "Default": "load-test-with-spot-fleet"
+    }
+  },
+  "Resources": {
+    "testFleetSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group used for the test server and test agents to communicate with each other",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "testFleetWhitelistTestTraffic": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "SourceSecurityGroupId": {
+          "Ref": "testFleetSecurityGroup"
+        },
+        "GroupId": {
+          "Ref": "testFleetSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535"
+      }
+    },
+    "readBucketRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+        ],
+        "Path": "/"
+      }
+    },
+    "RolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "readTestArtifactsFromS3AndGetSpotInstanceAddresses",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeSpotFleetInstances",
+                "ec2:DescribeInstances"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "testArtifactsBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:aws:s3:::",
+                      {
+                        "Ref": "testArtifactsBucket"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "readBucketRole"
+          }
+        ]
+      }
+    },
+    "testFleetIamInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "readBucketRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "testFleetIamInstanceProfile": {
+      "Description": "IAM instance profile required by test fleet",
+      "Value": {
+        "Ref": "testFleetIamInstanceProfile"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            ":",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "testFleetIamInstanceProfile"
+            ]
+          ]
+        }
+      }
+    },
+    "testFleetIamInstanceProfileArn": {
+      "Description": "IAM instance profile required by test fleet",
+      "Value": {
+        "Fn::GetAtt": [
+          "testFleetIamInstanceProfile",
+          "Arn"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            ":",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "testFleetIamInstanceProfileArn"
+            ]
+          ]
+        }
+      }
+    },
+    "testFleetSecurityGroupId": {
+      "Description": "Id for security group to be shared by the test fleet instances",
+      "Value": {
+        "Ref": "testFleetSecurityGroup"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            ":",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "testFleetSecurityGroupId"
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2 @@
+- In the build phase, we copy the test artifacts to S3, and copy the CloudFormation template and parameter information for each of the three stacks
+- The build project requires permissions to write to and read from the designated S3 bucket for test artifacts 

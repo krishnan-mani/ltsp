@@ -1,0 +1,2 @@
+- A manual approval step provides the opportunity to obtain the test results and to inspect JMeter logs
+- The pipeline must have the permissions to operate on CloudFormation stacks

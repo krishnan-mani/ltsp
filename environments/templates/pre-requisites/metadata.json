@@ -1,0 +1,9 @@
+{
+  "name": "demo-pre-requisites",
+  "region": "us-east-1",
+  "hasParameters": true,
+  "capabilities": [
+    "CAPABILITY_IAM"
+  ],
+  "action": "update"
+}

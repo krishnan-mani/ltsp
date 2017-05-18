@@ -1,0 +1,123 @@
+{
+  "Parameters": {
+    "prerequisitesStackName": {
+      "Description": "Stack name that manages and exports pre-requisites for test fleet",
+      "Type": "String",
+      "Default": "demo-pre-requisites"
+    },
+    "TargetCapacity": {
+      "Description": "Desired target capacity of spot fleet",
+      "Type": "Number",
+      "Default": "8"
+    },
+    "VpcId": {
+      "Description": "VPC test fleet instances will reside in",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "testFleetSubnetId": {
+      "Description": "VPC subnet that load generating nodes resides in",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "KeyName": {
+      "Description": "Key name for SSH public key to logon to test nodes",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "myIamFleetRole": {
+      "Description": "IAM Role required to create spot fleet requests",
+      "Type": "String"
+    },
+    "testArtifactsBucket": {
+      "Description": "S3 bucket that holds the test artifacts",
+      "Type": "String",
+      "Default": "load-test-with-spot-fleet"
+    }
+  },
+  "Resources": {
+    "SpotFleet": {
+      "Type": "AWS::EC2::SpotFleet",
+      "Properties": {
+        "SpotFleetRequestConfigData": {
+          "IamFleetRole": {
+            "Ref": "myIamFleetRole"
+          },
+          "SpotPrice": "100",
+          "TargetCapacity": {
+            "Ref": "TargetCapacity"
+          },
+          "LaunchSpecifications": [
+            {
+              "IamInstanceProfile": {
+                "Arn": {
+                  "Fn::ImportValue": {
+                    "Fn::Sub": "${prerequisitesStackName}:testFleetIamInstanceProfileArn"
+                  }
+                }
+              },
+              "InstanceType": "m4.large",
+              "ImageId": "ami-c58c1dd3",
+              "KeyName": {
+                "Ref": "KeyName"
+              },
+              "SecurityGroups": [
+                {
+                  "GroupId": {
+                    "Fn::ImportValue": {
+                      "Fn::Sub": "${prerequisitesStackName}:testFleetSecurityGroupId"
+                    }
+                  }
+                }
+              ],
+              "SubnetId": {
+                "Ref": "testFleetSubnetId"
+              },
+              "UserData": {
+                "Fn::Base64": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash -xe\n",
+                      "yum update -y\n",
+                      "yum remove -y java-1.7.0-openjdk\n",
+                      "yum install -y java-1.8.0-openjdk\n",
+                      "mkdir /opt/load-test\n",
+                      "aws s3 cp s3://",
+                      {
+                        "Ref": "testArtifactsBucket"
+                      },
+                      "/binaries/apache-jmeter-3.2.zip /opt/load-test/\n",
+                      "cd /opt/load-test && unzip apache-jmeter-3.2.zip\n",
+                      "JVM_ARGS=\"-Xms512m -Xmx16384m\" /opt/load-test/apache-jmeter-3.2/bin/jmeter-server &"
+                    ]
+                  ]
+                }
+              },
+              "WeightedCapacity": "8"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "SpotFleetRequest": {
+      "Description": "Spot Fleet request Id",
+      "Value": {
+        "Ref": "SpotFleet"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            ":",
+            [
+              {
+                "Ref": "AWS::StackName"
+              },
+              "spotFleetRequest"
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
+

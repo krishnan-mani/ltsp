@@ -1,0 +1,209 @@
+{
+  "Parameters": {
+    "prerequisitesStackName": {
+      "Description": "Stack name that manages and exports pre-requisites for test fleet",
+      "Type": "String",
+      "Default": "demo-pre-requisites"
+    },
+    "VpcId": {
+      "Description": "VPC test fleet instances will reside in",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "testFleetSubnetId": {
+      "Description": "VPC subnet that load generating nodes resides in",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "CidrIp": {
+      "Description": "Cidr range to whitelist ssh access from",
+      "Type": "String",
+      "Default": "0.0.0.0/0"
+    },
+    "KeyName": {
+      "Description": "Key name for SSH public key to logon to test nodes",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "testArtifactsBucket": {
+      "Description": "S3 bucket that holds the test artifacts",
+      "Type": "String",
+      "Default": "load-test-with-spot-fleet"
+    },
+    "spotFleetStackName": {
+      "Description": "Stack name that creates the spot fleet",
+      "Type": "String",
+      "Default": "demo-spot-fleet"
+    }
+  },
+  "Resources": {
+    "accessSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Security group for access to the test master instance",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Ref": "CidrIp"
+            },
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22"
+          }
+        ]
+      }
+    },
+    "jmeterLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "RetentionInDays": 7
+      }
+    },
+    "testMasterInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/awslogs/config/jmeter-log.conf": {
+                "content": {
+                  "Fn::Join": [
+                    "\n",
+                    [
+                      "[jmeter]",
+                      "file=/opt/load-test/jmeter.log",
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "log_group_name",
+                            "=",
+                            {
+                              "Ref": "jmeterLogGroup"
+                            }
+                          ]
+                        ]
+                      },
+                      "log_stream_name=test-runner-{instance_id}"
+                    ]
+                  ]
+                },
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "services": {
+              "sysvinit": {
+                "awslogs": {
+                  "enabled": true,
+                  "ensureRunning": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "IamInstanceProfile": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${prerequisitesStackName}:testFleetIamInstanceProfile"
+          }
+        },
+        "InstanceType": "c4.large",
+        "ImageId": "ami-c58c1dd3",
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroupIds": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${prerequisitesStackName}:testFleetSecurityGroupId"
+            }
+          },
+          {
+            "Ref": "accessSecurityGroup"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "test-runner"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum install -y awslogs\n",
+                "yum remove -y java-1.7.0-openjdk\n",
+                "yum install -y java-1.8.0-openjdk\n",
+                "mkdir -p /opt/load-test/test-plans /opt/load-test/utility\n",
+                "aws s3 cp s3://",
+                {
+                  "Ref": "testArtifactsBucket"
+                },
+                "/binaries/apache-jmeter-3.2.zip /opt/load-test/ \n",
+                "aws s3 cp s3://",
+                {
+                  "Ref": "testArtifactsBucket"
+                },
+                "/test-plans/simple-load-test.jmx /opt/load-test/test-plans/ \n",
+                "aws s3 cp s3://",
+                {
+                  "Ref": "testArtifactsBucket"
+                },
+                "/test-plans/test-run.properties /opt/load-test/test-plans/ \n",
+                "aws s3 cp s3://",
+                {
+                  "Ref": "testArtifactsBucket"
+                },
+                "/utility/enumerate_spot_fleet_instances.sh /opt/load-test/utility/ \n",
+                "cd /opt/load-test && unzip apache-jmeter-3.2.zip \n",
+                "chmod u+x /opt/load-test/utility/enumerate_spot_fleet_instances.sh \n",
+                "export remote_hosts=$(/opt/load-test/utility/enumerate_spot_fleet_instances.sh ",
+                {
+                  "Fn::ImportValue": {
+                    "Fn::Sub": "${spotFleetStackName}:spotFleetRequest"
+                  }
+                },
+                " ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ")\n",
+                "/opt/load-test/apache-jmeter-3.2/bin/jmeter -n",
+                " -t /opt/load-test/test-plans/simple-load-test.jmx",
+                " -q /opt/load-test/test-plans/test-run.properties",
+                " -R${remote_hosts}",
+                " -l /tmp/results.csv",
+                " -j /opt/load-test/jmeter.log\n",
+                {
+                  "Fn::Join": [
+                    " ",
+                    [
+                      "/opt/aws/bin/cfn-init",
+                      "--region",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "-s",
+                      {
+                        "Ref": "AWS::StackId"
+                      },
+                      "-r",
+                      "testMasterInstance",
+                      "-v"
+                    ]
+                  ]
+                }
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

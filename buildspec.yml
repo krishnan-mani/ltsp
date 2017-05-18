@@ -1,0 +1,25 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - aws s3 sync downloads s3://${TEST_ARTIFACTS_BUCKET}/binaries --exclude .gitignore
+      - aws s3 sync test-plans s3://${TEST_ARTIFACTS_BUCKET}/test-plans --exclude .gitignore
+      - aws s3 cp utility/enumerate_spot_fleet_instances.sh s3://${TEST_ARTIFACTS_BUCKET}/utility/enumerate_spot_fleet_instances.sh
+      - cd utility && npm install
+      - cp environments/templates/pre-requisites/template.json pre-requisites.template.json
+      - cd utility && node emitCloudFormationParametersArtifact.js ../environments/templates/pre-requisites/parameters.json > pre-requisites.parameters.json
+      - cp environments/templates/spot-fleet/template.json spot-fleet.template.json
+      - cd utility && node emitCloudFormationParametersArtifact.js ../environments/templates/spot-fleet/parameters.json > spot-fleet.parameters.json
+      - cp environments/templates/test-runner/template.json test-runner.template.json
+      - cd utility && node emitCloudFormationParametersArtifact.js ../environments/templates/test-runner/parameters.json > test-runner.parameters.json
+
+artifacts:
+  files:
+    - pre-requisites.template.json
+    - utility/pre-requisites.parameters.json
+    - spot-fleet.template.json
+    - utility/spot-fleet.parameters.json
+    - test-runner.template.json
+    - utility/test-runner.parameters.json
+  discard-paths: yes
