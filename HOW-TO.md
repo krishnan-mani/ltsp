@@ -8,6 +8,12 @@ With pricing options such as spot, customers gain access to compute capacity at 
 Load testing with spot fleet
 ===
 
+Current limitations
+====
+
+- All of the services and templates are deployed out of the AWS "us-east-1" region
+- See [TODO.md](TODO.md) for more
+
 Overview
 ====
 
@@ -23,12 +29,11 @@ We use the popular and versatile open-source testing tool: JMeter; to demonstrat
 Organization
 ====
 
-- doc: contains descriptive documentation
-- environments: contains CloudFormation templates, example parameter lists, and description of how multiple stacks are organised and should be used together
-- downloads: contains the software binaries for JMeter
-- test-plans: contains the JMeter test plan (.jmx) and test run properties file
-- utility: contains scripts to perform some utility tasks
-- buildspec.yml: a build specification file for use with CodeBuild
+- [environments](environments): contains CloudFormation templates, example parameter lists, and description of how multiple stacks are organised and should be used together
+- [downloads](downloads): contains the software binaries for JMeter
+- [test-plans](test-plans): contains the JMeter test plan (.jmx) and test run properties file
+- [utility](utility): contains scripts to perform some utility tasks
+- [buildspec.yml](buildspec.yml): a build specification file for use with CodeBuild
 
 Setup and run tests
 ====
